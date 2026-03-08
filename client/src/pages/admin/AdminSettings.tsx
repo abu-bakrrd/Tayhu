@@ -788,7 +788,7 @@ export default function AdminSettings() {
 										onChange={e =>
 											setSmtp({ ...smtp, from_name: e.target.value })
 										}
-										placeholder='Milhive'
+										placeholder='Tayhu'
 									/>
 								</div>
 							</div>

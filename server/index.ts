@@ -1,84 +1,87 @@
-import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
-import { spawn } from 'child_process';
-import { log, setupVite } from "./vite";
+import express from 'express'
+import { createProxyMiddleware } from 'http-proxy-middleware'
+import { spawn } from 'child_process'
+import { log, setupVite } from './vite'
 
-const app = express();
+const app = express()
 
-// Flask will run on port 5001
-const FLASK_PORT = 5001;
-const SERVER_PORT = 5000;
+// Flask will run on a port derived from the main port (default 5001 if main is 5000)
+const SERVER_PORT = parseInt(process.env.PORT || '5000', 10)
+const FLASK_PORT = SERVER_PORT + 1
 
 // Start Flask application
-log("Starting Flask API server...");
+log('Starting Flask API server...')
 
 // First, seed the database
 const seed = spawn('python', ['seed_db.py'], {
-  env: process.env,
-  stdio: 'pipe'
-});
+	env: process.env,
+	stdio: 'pipe',
+})
 
-seed.stdout?.on('data', (data) => {
-  log(data.toString().trim(), "seed");
-});
+seed.stdout?.on('data', data => {
+	log(data.toString().trim(), 'seed')
+})
 
-seed.stderr?.on('data', (data) => {
-  console.error(`Seed error: ${data}`);
-});
+seed.stderr?.on('data', data => {
+	console.error(`Seed error: ${data}`)
+})
 
-seed.on('close', (code) => {
-  if (code === 0) {
-    log("Database seeded successfully", "seed");
-  } else {
-    log(`Database seed failed with code ${code}`, "seed");
-  }
-  
-  // Start Flask server on port 5001
-  const flaskEnv = { ...process.env, PORT: FLASK_PORT.toString() };
-  const flask = spawn('python', ['app.py'], {
-    env: flaskEnv,
-    stdio: 'pipe'
-  });
+seed.on('close', code => {
+	if (code === 0) {
+		log('Database seeded successfully', 'seed')
+	} else {
+		log(`Database seed failed with code ${code}`, 'seed')
+	}
 
-  flask.stdout?.on('data', (data) => {
-    log(data.toString().trim(), "flask");
-  });
+	// Start Flask server on port 5001
+	const flaskEnv = { ...process.env, PORT: FLASK_PORT.toString() }
+	const flask = spawn('python', ['app.py'], {
+		env: flaskEnv,
+		stdio: 'pipe',
+	})
 
-  flask.stderr?.on('data', (data) => {
-    console.error(`Flask: ${data}`);
-  });
+	flask.stdout?.on('data', data => {
+		log(data.toString().trim(), 'flask')
+	})
 
-  flask.on('error', (error) => {
-    console.error(`Failed to start Flask: ${error.message}`);
-    process.exit(1);
-  });
+	flask.stderr?.on('data', data => {
+		console.error(`Flask: ${data}`)
+	})
 
-  flask.on('exit', (code) => {
-    log(`Flask process exited with code ${code}`, "flask");
-    process.exit(code || 0);
-  });
+	flask.on('error', error => {
+		console.error(`Failed to start Flask: ${error.message}`)
+		process.exit(1)
+	})
 
-  // Handle termination signals
-  process.on('SIGTERM', () => {
-    flask.kill('SIGTERM');
-  });
+	flask.on('exit', code => {
+		log(`Flask process exited with code ${code}`, 'flask')
+		process.exit(code || 0)
+	})
 
-  process.on('SIGINT', () => {
-    flask.kill('SIGINT');
-  });
-});
+	// Handle termination signals
+	process.on('SIGTERM', () => {
+		flask.kill('SIGTERM')
+	})
+
+	process.on('SIGINT', () => {
+		flask.kill('SIGINT')
+	})
+})
 
 // Proxy API requests to Flask
-app.use('/api', createProxyMiddleware({
-  target: `http://localhost:${FLASK_PORT}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api': '/api' // Keep /api prefix when forwarding to Flask
-  }
-}));
+app.use(
+	'/api',
+	createProxyMiddleware({
+		target: `http://localhost:${FLASK_PORT}`,
+		changeOrigin: true,
+		pathRewrite: {
+			'^/api': '/api', // Keep /api prefix when forwarding to Flask
+		},
+	}),
+)
 
 // Setup Vite for frontend
-const server = app.listen(SERVER_PORT, "0.0.0.0", async () => {
-  await setupVite(app, server);
-  log(`Server running on http://0.0.0.0:${SERVER_PORT}`);
-});
+const server = app.listen(SERVER_PORT, '0.0.0.0', async () => {
+	await setupVite(app, server)
+	log(`Server running on http://0.0.0.0:${SERVER_PORT}`)
+})

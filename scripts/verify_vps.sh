@@ -1,5 +1,5 @@
 #!/bin/bash
-# Скрипт проверки состояния VPS для Milhive Shop
+# Скрипт проверки состояния VPS для Tayhu Shop
 # Использование: ./verify_vps.sh
 
 RED='\033[0;31m'

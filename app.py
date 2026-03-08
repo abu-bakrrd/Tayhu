@@ -15,7 +15,7 @@ def sitemap():
     # Load site URL from config
     current_dir = os.path.dirname(os.path.abspath(__file__))
     config_path = os.path.join(current_dir, 'config', 'settings.json')
-    site_url = "https://milhive.shop" # Default fallback
+    site_url = "https://tayhu.uz" # Default fallback
     
     try:
         if os.path.exists(config_path):
@@ -84,11 +84,11 @@ def serve_react(path):
         config_path = os.path.join(current_dir, 'config', 'settings.json')
         
         seo_data = {
-            'shopName': 'Milhive',
-            'title': 'Milhive — Стильная одежда | Интернет-магазин',
-            'description': 'Milhive — интернет-магазин стильной одежды в Узбекистане.',
-            'keywords': 'одежда, Узбекистан, интернет-магазин, стиль',
-            'siteUrl': 'https://milhive.shop',
+            'shopName': 'Tayhu',
+            'title': 'Tayhu — Декоративный пластик и рейки | Ташкент',
+            'description': 'Tayhu — интернет-магазин декоративного пластика, реек и 3D-панелей в Узбекистане.',
+            'keywords': 'интерьер, декор, пластик, рейки, Узбекистан, интернет-магазин',
+            'siteUrl': 'https://tayhu.uz',
             'language': 'ru'
         }
 

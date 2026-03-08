@@ -116,6 +116,15 @@ done
 
 read -p "Порт приложения [5000]: " APP_PORT
 APP_PORT=${APP_PORT:-5000}
+
+read -p "Суффикс экземпляра (оставьте пустым для 'app', или введите например '2' для 'app2') []: " INSTANCE_ID
+if [ -z "$INSTANCE_ID" ]; then
+    APP_SUBDIR="app"
+    SVC_SUFFIX=""
+else
+    APP_SUBDIR="app$INSTANCE_ID"
+    SVC_SUFFIX="-$INSTANCE_ID"
+fi
 echo ""
 
 # Telegram Bot токены
@@ -220,7 +229,7 @@ print_step "PostgreSQL настроен"
 # ============================================================================
 # ПОЛУЧЕНИЕ КОДА ПРИЛОЖЕНИЯ
 # ============================================================================
-APP_DIR="/home/$APP_USER/app"
+APP_DIR="/home/$APP_USER/$APP_SUBDIR"
 
 if [ ! -z "$GITHUB_REPO" ]; then
     print_step "Клонирование из GitHub: $GITHUB_REPO"
@@ -319,9 +328,9 @@ fi
 print_step "Создание systemd сервисов..."
 
 # Flask App (Shop)
-cat > /etc/systemd/system/shop-app.service <<EOF
+cat > /etc/systemd/system/shop-app$SVC_SUFFIX.service <<EOF
 [Unit]
-Description=Telegram Shop Flask Application
+Description=Telegram Shop Flask Application $SVC_SUFFIX
 After=network.target postgresql.service
 
 [Service]
@@ -339,10 +348,11 @@ WantedBy=multi-user.target
 EOF
 
 # AI Bot (Mona)
-cat > /etc/systemd/system/ai-bot.service <<EOF
+if [ ! -z "$AI_BOT_TOKEN" ]; then
+cat > /etc/systemd/system/ai-bot$SVC_SUFFIX.service <<EOF
 [Unit]
-Description=AI Customer Support Bot (Mona)
-After=network.target postgresql.service shop-app.service
+Description=AI Customer Support Bot (Mona) $SVC_SUFFIX
+After=network.target postgresql.service shop-app$SVC_SUFFIX.service
 
 [Service]
 Type=simple
@@ -359,13 +369,14 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
+fi
 
 # Main Telegram Bot
 if [ ! -z "$TELEGRAM_BOT_TOKEN" ]; then
-cat > /etc/systemd/system/telegram-bot.service <<EOF
+cat > /etc/systemd/system/telegram-bot$SVC_SUFFIX.service <<EOF
 [Unit]
-Description=Main Telegram Shop Bot
-After=network.target postgresql.service shop-app.service
+Description=Main Telegram Shop Bot $SVC_SUFFIX
+After=network.target postgresql.service shop-app$SVC_SUFFIX.service
 
 [Service]
 Type=simple
@@ -390,15 +401,17 @@ fi
 print_step "Запуск сервисов..."
 systemctl daemon-reload
 
-systemctl enable shop-app
-systemctl start shop-app
+systemctl enable shop-app$SVC_SUFFIX
+systemctl start shop-app$SVC_SUFFIX
 
-systemctl enable ai-bot
-systemctl start ai-bot
+if [ ! -z "$AI_BOT_TOKEN" ]; then
+    systemctl enable ai-bot$SVC_SUFFIX
+    systemctl start ai-bot$SVC_SUFFIX
+fi
 
 if [ ! -z "$TELEGRAM_BOT_TOKEN" ]; then
-    systemctl enable telegram-bot
-    systemctl start telegram-bot
+    systemctl enable telegram-bot$SVC_SUFFIX
+    systemctl start telegram-bot$SVC_SUFFIX
 fi
 
 sleep 3
@@ -406,23 +419,25 @@ sleep 3
 # Проверка статуса сервисов
 echo ""
 print_info "Проверка статуса сервисов..."
-if systemctl is-active --quiet shop-app; then
-    print_step "✅ Shop App запущен"
+if systemctl is-active --quiet shop-app$SVC_SUFFIX; then
+    print_step "✅ Shop App $SVC_SUFFIX запущен"
 else
-    print_error "❌ Shop App не запустился"
+    print_error "❌ Shop App $SVC_SUFFIX не запустился"
 fi
 
-if systemctl is-active --quiet ai-bot; then
-    print_step "✅ AI Bot запущен"
-else
-    print_error "❌ AI Bot не запустился"
+if [ ! -z "$AI_BOT_TOKEN" ]; then
+    if systemctl is-active --quiet ai-bot$SVC_SUFFIX; then
+        print_step "✅ AI Bot $SVC_SUFFIX запущен"
+    else
+        print_error "❌ AI Bot $SVC_SUFFIX не запустился"
+    fi
 fi
 
 if [ ! -z "$TELEGRAM_BOT_TOKEN" ]; then
-    if systemctl is-active --quiet telegram-bot; then
-        print_step "✅ Telegram Bot запущен"
+    if systemctl is-active --quiet telegram-bot$SVC_SUFFIX; then
+        print_step "✅ Telegram Bot $SVC_SUFFIX запущен"
     else
-        print_error "❌ Telegram Bot не запустился"
+        print_error "❌ Telegram Bot $SVC_SUFFIX не запустился"
     fi
 fi
 
@@ -433,14 +448,14 @@ print_step "Настройка Nginx..."
 
 if [ ! -z "$DOMAIN" ]; then
     # С доменом
-    cat > /etc/nginx/sites-available/shop <<EOF
+    cat > /etc/nginx/sites-available/shop$SVC_SUFFIX <<EOF
 server {
     listen 80;
     server_name $DOMAIN www.$DOMAIN;
     client_max_body_size 20M;
 
-    access_log /var/log/nginx/shop_access.log;
-    error_log /var/log/nginx/shop_error.log;
+    access_log /var/log/nginx/shop${SVC_SUFFIX}_access.log;
+    error_log /var/log/nginx/shop${SVC_SUFFIX}_error.log;
 
     location /assets {
         alias $APP_DIR/dist/public/assets;
@@ -465,14 +480,14 @@ server {
 EOF
 else
     # Без домена (только IP)
-    cat > /etc/nginx/sites-available/shop <<EOF
+    cat > /etc/nginx/sites-available/shop$SVC_SUFFIX <<EOF
 server {
     listen 80;
     server_name _;
     client_max_body_size 20M;
 
-    access_log /var/log/nginx/shop_access.log;
-    error_log /var/log/nginx/shop_error.log;
+    access_log /var/log/nginx/shop${SVC_SUFFIX}_access.log;
+    error_log /var/log/nginx/shop${SVC_SUFFIX}_error.log;
 
     location /assets {
         alias $APP_DIR/dist/public/assets;
@@ -497,8 +512,9 @@ server {
 EOF
 fi
 
-ln -sf /etc/nginx/sites-available/shop /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/shop$SVC_SUFFIX /etc/nginx/sites-enabled/
+# ВАЖНО: Мы не удаляем default автоматически, чтобы не сломать первый инстанс если он на другом конфиге
+# rm -f /etc/nginx/sites-enabled/default
 
 if nginx -t; then
     systemctl restart nginx
@@ -573,31 +589,37 @@ fi
 echo ""
 
 echo -e "${BLUE}🤖 БОТЫ (Telegram):${NC}"
-echo -e "   ✅ AI Bot (Mona) - запущен"
+if [ ! -z "$AI_BOT_TOKEN" ]; then
+    echo -e "   ✅ AI Bot (Mona) - запущен"
+else
+    echo -e "   ⚪ AI Bot (Mona) - пропущен (нет токена)"
+fi
+
 if [ ! -z "$TELEGRAM_BOT_TOKEN" ]; then
     echo -e "   ✅ Main Telegram Bot - запущен"
+else
+    echo -e "   ⚪ Main Telegram Bot - пропущен (нет токена)"
 fi
 echo ""
 
 echo -e "${BLUE}📊 УПРАВЛЕНИЕ СЕРВИСАМИ:${NC}"
-echo -e "   Shop App:      sudo systemctl {start|stop|restart|status} shop-app"
-echo -e "   AI Bot:        sudo systemctl {start|stop|restart|status} ai-bot"
-if [ ! -z "$TELEGRAM_BOT_TOKEN" ]; then
-    echo -e "   Telegram Bot:  sudo systemctl {start|stop|restart|status} telegram-bot"
-fi
+echo -e "   Shop App:      sudo systemctl {start|stop|restart|status} shop-app$SVC_SUFFIX"
+[ ! -z "$AI_BOT_TOKEN" ] && echo -e "   AI Bot:        sudo systemctl {start|stop|restart|status} ai-bot$SVC_SUFFIX"
+[ ! -z "$TELEGRAM_BOT_TOKEN" ] && echo -e "   Telegram Bot:  sudo systemctl {start|stop|restart|status} telegram-bot$SVC_SUFFIX"
 echo ""
 
 echo -e "${BLUE}📜 ПРОСМОТР ЛОГОВ:${NC}"
-echo -e "   Shop App:      sudo journalctl -u shop-app -f"
-echo -e "   AI Bot:        sudo journalctl -u ai-bot -f"
-if [ ! -z "$TELEGRAM_BOT_TOKEN" ]; then
-    echo -e "   Telegram Bot:  sudo journalctl -u telegram-bot -f"
-fi
+echo -e "   Shop App:      sudo journalctl -u shop-app$SVC_SUFFIX -f"
+[ ! -z "$AI_BOT_TOKEN" ] && echo -e "   AI Bot:        sudo journalctl -u ai-bot$SVC_SUFFIX -f"
+[ ! -z "$TELEGRAM_BOT_TOKEN" ] && echo -e "   Telegram Bot:  sudo journalctl -u telegram-bot$SVC_SUFFIX -f"
 echo ""
 
 echo -e "${BLUE}🔄 ОБНОВЛЕНИЕ:${NC}"
 echo -e "   cd $APP_DIR && git pull"
-echo -e "   sudo systemctl restart shop-app ai-bot telegram-bot"
+echo -n "   sudo systemctl restart shop-app$SVC_SUFFIX"
+[ ! -z "$AI_BOT_TOKEN" ] && echo -n " ai-bot$SVC_SUFFIX"
+[ ! -z "$TELEGRAM_BOT_TOKEN" ] && echo -n " telegram-bot$SVC_SUFFIX"
+echo ""
 echo ""
 
 echo -e "${YELLOW}📝 СЛЕДУЮЩИЕ ШАГИ:${NC}"

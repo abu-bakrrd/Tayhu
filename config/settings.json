@@ -1,14 +1,14 @@
 {
 	"language": "ru",
-	"shopName": "Milhive",
-	"description": "Будь в стиле. Будь с Milhive",
-	"logo": "/config/logoo.svg",
-	"darkLogo": "/config/logoo.svg",
+	"shopName": "Tayhu",
+	"description": "Эстетика в деталях. Пластиковый декор для стен и потолка.",
+	"logo": "/config/logo copy.svg",
+	"darkLogo": "/config/logo copy.svg",
 	"seo": {
-		"title": "Milhive — Стильная одежда | Интернет-магазин",
-		"description": "Milhive — интернет-магазин стильной одежды в Узбекистане. Головные уборы, верхняя одежда, обувь и аксессуары. Доставка по всей стране.",
-		"keywords": "одежда, Узбекистан, стиль, мода, головные уборы, верхняя одежда, обувь, аксессуары, milhive, Milhive, мужская",
-		"siteUrl": "https://milhive.shop",
+		"title": "Tayhu — Декоративный пластик и рейки | Ташкент",
+		"description": "Tayhu — интернет-магазин декоративного пластика, реек и 3D-панелей в Узбекистане. Премиальное качество для вашего интерьера.",
+		"keywords": "пластиковый декор, рейки, 3D панели, молдинги, плинтусы, интерьер, дизайн, Узбекистан, Tayhu",
+		"siteUrl": "https://tayhu.uz",
 		"language": "ru"
 	},
 	"currency": {
@@ -16,8 +16,8 @@
 		"code": "UZS",
 		"position": "after"
 	},
-	"managerContact": "@milhiveAi_bot",
-	"telegramBotUrl": "https://t.me/milhiveAi_bot",
+	"managerContact": "@tayhu_admin",
+	"telegramBotUrl": "https://t.me/tayhu_bot",
 	"colorScheme": {
 		"background": "#FFFFFF",
 		"foreground": "#111111",
@@ -25,21 +25,21 @@
 		"card": "#FFFFFF",
 		"cardForeground": "#111111",
 
-		"primary": "#f5a40d",
-		"primaryForeground": "#111111",
+		"primary": "#996533",
+		"primaryForeground": "#FFFFFF",
 
-		"secondary": "#ae883f",
+		"secondary": "#9D9D9D",
 		"secondaryForeground": "#FFFFFF",
 
 		"muted": "#F7F7F7",
 		"mutedForeground": "#6B6B6B",
 
-		"accent": "#f5a40d",
+		"accent": "#CC9A67",
 		"accentForeground": "#111111",
 
 		"border": "#E6E6E6",
 		"input": "#E6E6E6",
-		"ring": "#f5a40d"
+		"ring": "#996533"
 	},
 	"colorSchemeDark": {
 		"background": "#0F0F0F",
@@ -48,21 +48,21 @@
 		"card": "#161616",
 		"cardForeground": "#F5F5F5",
 
-		"primary": "#f5a40d",
+		"primary": "#CC9A67",
 		"primaryForeground": "#0F0F0F",
 
-		"secondary": "#cca64b",
-		"secondaryForeground": "#0F0F0F",
+		"secondary": "#996533",
+		"secondaryForeground": "#F5F5F5",
 
 		"muted": "#1F1F1F",
 		"mutedForeground": "#9A9A9A",
 
-		"accent": "#f5a40d",
+		"accent": "#CC9A67",
 		"accentForeground": "#0F0F0F",
 
 		"border": "#262626",
 		"input": "#262626",
-		"ring": "#f5a40d"
+		"ring": "#CC9A67"
 	},
 	"sortOptions": [
 		{
@@ -97,8 +97,8 @@
 	"fonts": {
 		"fontFamily": "Inter",
 		"fontFile": null,
-		"shopNameFontFamily": "Montez",
-		"shopNameFontFile": "/config/Montez-Regular.ttf",
+		"shopNameFontFamily": "Inter",
+		"shopNameFontFile": null,
 		"productName": {
 			"weight": 700
 		},
@@ -136,9 +136,9 @@
 		},
 		"cardTransfer": {
 			"enabled": true,
-			"cardNumber": "9860160602358923",
-			"cardHolder": "Zolola Gayupova",
-			"bankName": "Hamkor Bankx"
+			"cardNumber": "0000 0000 0000 0000",
+			"cardHolder": "TAYHU DECOR",
+			"bankName": "Bank Branch"
 		}
 	},
 	"telegramNotifications": {
@@ -152,24 +152,24 @@
 	},
 	"categories": [
 		{
-			"id": "caps",
-			"name": "Головные уборы",
-			"icon": "🧢"
+			"id": "3d-panels",
+			"name": "3D Панели",
+			"icon": "🧱"
 		},
 		{
-			"id": "outerwear",
-			"name": "Верхняя одежда",
-			"icon": "🧥"
+			"id": "slats",
+			"name": "Стеновые рейки",
+			"icon": "📏"
 		},
 		{
-			"id": "shoes",
-			"name": "Обувь",
-			"icon": "👟"
+			"id": "mouldings",
+			"name": "Молдинги",
+			"icon": "🏛️"
 		},
 		{
-			"id": "accessories",
-			"name": "Аксессуары",
-			"icon": "🕶️"
+			"id": "plastic-decor",
+			"name": "Декор пластик",
+			"icon": "💎"
 		}
 	],
 	"delivery": {
