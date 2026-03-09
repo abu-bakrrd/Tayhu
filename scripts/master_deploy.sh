@@ -117,13 +117,17 @@ done
 read -p "Порт приложения [5000]: " APP_PORT
 APP_PORT=${APP_PORT:-5000}
 
-read -p "Суффикс экземпляра (оставьте пустым для 'app', или введите например '2' для 'app2') []: " INSTANCE_ID
+read -p "ID экземпляра (например '2' для app2, или оставьте пустым для основного) []: " INSTANCE_ID
 if [ -z "$INSTANCE_ID" ]; then
     APP_SUBDIR="app"
     SVC_SUFFIX=""
+    INSTANCE_LABEL="основной"
 else
+    # Очищаем ID от лишних символов
+    INSTANCE_ID=$(echo $INSTANCE_ID | sed 's/[^0-9a-zA-Z]//g')
     APP_SUBDIR="app$INSTANCE_ID"
     SVC_SUFFIX="-$INSTANCE_ID"
+    INSTANCE_LABEL="$INSTANCE_ID"
 fi
 echo ""
 
@@ -182,6 +186,24 @@ if ! command -v node &> /dev/null; then
     apt install -y nodejs
 else
     print_info "Node.js уже установлен: $(node --version)"
+fi
+
+# ============================================================================
+# ОПТИМИЗАЦИЯ ПАМЯТИ
+# ============================================================================
+TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
+if [ "$TOTAL_MEM" -lt 1500 ]; then
+    print_warning "Мало оперативной памяти ($TOTAL_MEM MB). Проверяю swap..."
+    if [ $(free -m | awk '/^Swap:/{print $2}') -lt 1000 ]; then
+        if [ ! -f /swapfile_deploy ]; then
+            print_step "Создаю swap файл 2GB для стабильной сборки..."
+            fallocate -l 2G /swapfile_deploy
+            chmod 600 /swapfile_deploy
+            mkswap /swapfile_deploy
+            swapon /swapfile_deploy
+            print_step "Swap файл активирован"
+        fi
+    fi
 fi
 
 # ============================================================================
@@ -287,8 +309,15 @@ sudo -u $APP_USER bash <<EOF
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 cd $APP_DIR
 if [ -f "package.json" ]; then
-    npm install
-    npm run build
+    print_info "Запуск npm install..."
+    npm install || { print_error "npm install не удался"; exit 1; }
+    print_info "Запуск npm run build..."
+    npm run build || { print_error "npm run build не удался (возможно не хватает памяти)"; exit 1; }
+    
+    if [ ! -d "dist/public" ]; then
+        print_error "Папка dist/public не создана после сборки!"
+        exit 1
+    fi
 fi
 EOF
 
@@ -399,6 +428,7 @@ fi
 # ЗАПУСК СЕРВИСОВ
 # ============================================================================
 print_step "Запуск сервисов..."
+echo "Service Name: shop-app$SVC_SUFFIX"
 systemctl daemon-reload
 
 systemctl enable shop-app$SVC_SUFFIX
@@ -479,10 +509,20 @@ server {
 }
 EOF
 else
-    # Без домена (только IP)
+    # Если домен не указан, используем IP
+    EXT_PORT=80
+    if [ "$APP_PORT" != "5000" ] && [ -z "$DOMAIN" ]; then
+        # Для второго инстанса без домена предлагаем открыть другой внешний порт
+        # например 8080, 8081 и т.д.
+        EXT_PORT=$(( 80 + INSTANCE_ID )) 2>/dev/null || EXT_PORT=80
+        if [ "$EXT_PORT" -eq 80 ]; then EXT_PORT=8080; fi
+        print_warning "Для доступа без домена будет использоваться внешний порт: $EXT_PORT"
+        ufw allow $EXT_PORT/tcp
+    fi
+
     cat > /etc/nginx/sites-available/shop$SVC_SUFFIX <<EOF
 server {
-    listen 80;
+    listen $EXT_PORT;
     server_name _;
     client_max_body_size 20M;
 
