@@ -125,7 +125,7 @@ if [ -z "$INSTANCE_ID" ]; then
 else
     # Очищаем ID от лишних символов
     INSTANCE_ID=$(echo $INSTANCE_ID | sed 's/[^0-9a-zA-Z]//g')
-    APP_SUBDIR="app$INSTANCE_ID"
+    APP_SUBDIR="app-$INSTANCE_ID"
     SVC_SUFFIX="-$INSTANCE_ID"
     INSTANCE_LABEL="$INSTANCE_ID"
 fi
