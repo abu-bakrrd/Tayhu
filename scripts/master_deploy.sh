@@ -129,6 +129,27 @@ else
     SVC_SUFFIX="-$INSTANCE_ID"
     INSTANCE_LABEL="$INSTANCE_ID"
 fi
+
+# Проверка порта
+if netstat -tulpn 2>/dev/null | grep -q ":$APP_PORT "; then
+    print_error "Порт $APP_PORT уже занят другим процессом!"
+    netstat -tulpn | grep ":$APP_PORT "
+    exit 1
+fi
+
+# Проверка директории
+APP_DIR="/home/$APP_USER/$APP_SUBDIR"
+if [ -d "$APP_DIR" ]; then
+    print_warning "Директория $APP_DIR уже существует."
+    read -p "Удалить её и продолжить? (y/n): " CONFIRM_DELETE
+    if [[ "$CONFIRM_DELETE" == "y" || "$CONFIRM_DELETE" == "Y" ]]; then
+        rm -rf "$APP_DIR"
+        print_step "Старая директория удалена"
+    else
+        print_error "Установка прервана, чтобы не перезаписать данные."
+        exit 1
+    fi
+fi
 echo ""
 
 # Telegram Bot токены
@@ -251,7 +272,9 @@ print_step "PostgreSQL настроен"
 # ============================================================================
 # ПОЛУЧЕНИЕ КОДА ПРИЛОЖЕНИЯ
 # ============================================================================
-APP_DIR="/home/$APP_USER/$APP_SUBDIR"
+# APP_DIR уже определен выше при проверке
+mkdir -p "$APP_DIR"
+chown $APP_USER:$APP_USER "$APP_DIR"
 
 if [ ! -z "$GITHUB_REPO" ]; then
     print_step "Клонирование из GitHub: $GITHUB_REPO"
